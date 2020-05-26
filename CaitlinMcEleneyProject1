@@ -1,0 +1,80 @@
+#Project #1
+#Caitlin McEleney
+
+.data
+		.align 2
+	arg1:	.word 0
+	arg2: 	.word 0
+	arg1Parsed: .word 200
+	error: 	.asciiz "incorrect argument provided.\n"
+	sm: 	.asciiz "Signed Magnitude: "
+	one:	.asciiz "One's Complement: "
+	gray: 	.asciiz "Gray Code: "
+	dbl: 	.asciiz "Double Dabble: "
+	msg1: 	.asciiz "You entered "
+	msg2: 	.asciiz " which parsed to "
+	msg3: 	.asciiz " in hex it looks like "
+#macro to get command line arguments
+.macro load_args
+	lw $t0, 0($a1)
+	sw $t0, arg1
+	lw $t0, 4($a1)
+	sw $t0, arg2
+.end_macro
+#macro to print messages
+.macro printString ($arg1)
+	li $v0,4
+	la $a0,$arg1
+	syscall
+.end_macro
+
+.macro printArg($arg1)
+	lw $a0, $arg1(0)
+	li $v0, 4
+	syscall
+.end_macro
+
+.text
+.globl main
+main:
+	load_args()
+	#Convert to base 10
+	printString(arg1)
+toNumber:
+	la $t0, arg1		#set base address to $t0
+	li $t1, 0		#sets the int to 0
+	lb $s0, ($t0)		#loads base byte of arg1 from $t0 to $s0
+	li $s2, 0		#sets $s2 to 0 to change of negative check
+	beq $s0, '-', negative	#if negative number
+	j loop			#for each char
+negative: 
+	addi $s0, $s0, 1	#increment address to start past '-'
+	li $s2, 1		#to give indicator that the int was negative
+loop:	
+	blt $s0, 0, printParsed	
+	bgt $s0, 9, printParsed	#branches if digit is no longer between 0-9
+	mul $t1, $t1, 10	#multiplies the int by 10 to increment place saved back into $t1
+	sub $t2, $s0, 0		#subtracts the character by '0'
+	add $t1, $t1, $t2	#adds the incremented sum by the char
+	li $t2, 0		#sets $t2 back to 0
+	addi $s0, $s0, 1	#adds byte to $s0 to increment
+	j loop
+printParsed:			
+	bgt $s2, 0, negativePrintParse	
+	lw $t1, arg1Parsed
+	printString(msg1)
+	printString(arg1)
+	printString(msg2)
+	printString(arg1Parsed)
+	j exit
+negativePrintParse:
+	li $t5, 0
+	sub $t1, $t5, $t3
+	lw $t1, arg1Parsed
+	printString(msg1)
+	printString(arg1)
+	printString(msg2)
+	printString(arg1Parsed)
+	
+exit:	li $v0, 10
+	syscall	
